@@ -55,7 +55,7 @@ class SANE:
         self.best_fitness = float('-inf')
         self.best_indices = None
         self.stagnation_count = 0
-        self.STAGNATION_THRESHOLD = 1500
+        self.STAGNATION_THRESHOLD = 300
         self.epoch = 0
         self.best_solution_counter = 0
 
@@ -269,8 +269,8 @@ def main():
     input_size = env.observation_space.shape[0]
     output_size = env.action_space.n
     hidden_size = 20
-    pop_size = 8000
-    blueprint_size = 60
+    pop_size = 6000
+    blueprint_size = 100
     epochs = 1500
 
     sane = SANE(pop_size, input_size, hidden_size, output_size, blueprint_size)
