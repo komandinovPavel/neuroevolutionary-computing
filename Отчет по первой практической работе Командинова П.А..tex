@@ -1,0 +1,522 @@
+% Преамбула: настройка класса документа и необходимых пакетов
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{geometry}
+\geometry{left=30mm, right=10mm, top=20mm, bottom=20mm}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{listings} % Для отображения кода
+\usepackage{xcolor} % Для цветов в listings
+\usepackage{float} % Для точного размещения изображений
+
+% Настройка шрифтов и совместимости
+\usepackage[T2A]{fontenc}
+\usepackage{times}
+
+% Font and compatibility settings
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!50!black},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    frame=none,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=2, % Уменьшаем размер табуляции
+    columns=fullflexible, % Минимизируем лишние пробелы
+    mathescape=false,
+    literate={#}{{\#}}1
+}
+
+% Форматирование титульной страницы
+\begin{document}
+
+\begin{titlepage}
+    \vspace*{1cm}
+    {\small
+    \begin{center}
+    МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ\\
+    ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ АВТОНОМНОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ\\
+    \textbf{НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ ТОМСКИЙ ПОЛИТЕХНИЧЕСКИЙ УНИВЕРСИТЕТ}
+    \end{center}
+    }
+    \vspace{0.5cm}
+    \begin{center}
+    Инженерная школа информационных технологий и робототехники\\
+    Отделение информационных технологий\\
+    Направление: 09.04.01 Искусственный интеллект и машинное обучение
+    \end{center}
+    \vspace{1cm}
+    \begin{center}
+    \textbf{ОТЧЁТ ПО ПРАКТИЧЕСКОЙ РАБОТЕ №1}
+    \end{center}
+    \begin{center}
+    по дисциплине: Нейроэволюционные вычисления
+    \end{center}
+    \vspace{0.5cm}
+    \begin{center}
+    на тему: Реализация алгоритма SANE для задачи непрерывного контроля
+    \end{center}
+    \vspace{1cm}
+    % Дата в правом верхнем углу
+    \hfill 26.05.2025
+    \vspace{1cm}
+    % Двухколоночное расположение
+    \begin{tabular}{p{0.3\textwidth} p{0.65\textwidth}}
+        \textbf{Выполнил:} & студент гр. 8ВМ42 \newline Командинов П.А. \\
+        & \\
+        \textbf{Проверил:} & к.т.н., доцент ОИТ ИШИТР \newline Григорьев Д.С.
+    \end{tabular}
+    \vfill
+    \begin{center}
+    Томск – 2025
+    \end{center}
+\end{titlepage}
+
+% Оглавление
+\tableofcontents
+\newpage
+
+% Настройка форматирования разделов и интервалов
+\titleformat{\section}{\normalfont\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\bfseries}{\thesubsection}{1em}{}
+\setlength{\parindent}{15mm}
+\onehalfspacing
+
+% Раздел 1: Введение
+\section{Введение}
+В рамках практической работы №1 по дисциплине "Нейроэволюционные вычисления" была поставлена задача реализации алгоритма SANE (Symbiotic Adaptive NeuroEvolution) для решения задачи непрерывного контроля. Согласно варианту 11, используется полносвязная нейронная сеть с одним скрытым слоем. Цель работы — изучить принципы работы алгоритма SANE, реализовать его, провести анализ результатов и представить их в виде отчёта, включающего описание алгоритма, этапы реализации, визуализацию структуры сети, целевые метрики и графики сходимости.
+
+Для реализации задачи была выбрана виртуальная среда LunarLander-v3 из библиотеки Gymnasium, которая моделирует задачу управления двуногим роботом. В процессе работы использовались материалы лекций, в частности, информация об алгоритме SANE, представленная в лекции 8.
+
+% Раздел 2: Описание алгоритма
+\section{Описание используемого алгоритма}
+Алгоритм SANE, предложенный Дэвидом Мориарти, представляет собой коэволюционный подход к обучению нейронных сетей. Он используется для эволюции весов и структуры искусственных нейронных сетей (ИНС) прямого распространения с одним скрытым слоем. Основные особенности алгоритма:
+
+\begin{itemize}
+    \item Хромосома кодирует связи одного нейрона скрытого слоя, включая метку нейрона (8 бит), вес связи (16 бит) и информацию о входном/выходном нейроне.
+    \item Популяция нейронов эволюционирует совместно, при этом сохраняются удачные комбинации нейронов (blueprints) в отдельной популяции.
+    \item Для скрещивания и мутации применяются 1-точечный кроссинговер и битовая мутация.
+\end{itemize}
+
+Процесс одного поколения включает следующие шаги:
+\begin{enumerate}
+    \item Сброс приспособленностей нейронов.
+    \item Формирование ИНС из комбинаций нейронов и их оценка.
+    \item Обновление приспособленности нейронов на основе лучших комбинаций.
+    \item Скрещивание и мутация нейронов и комбинаций.
+\end{enumerate}
+
+% Раздел 3: Этапы реализации
+\section{Этапы имплементации}
+Реализация алгоритма SANE проводилась в несколько этапов:
+
+\subsection{Подготовительный этап}
+\begin{itemize}
+    \item Установка и настройка среды LunarLander-v3 из библиотеки Gymnasium.
+    \item Определение структуры нейронной сети: 24 входа (соответствуют наблюдениям среды), 8 нейронов в скрытом слоем, 4 выхода (действия робота).
+\end{itemize}
+
+\subsection{Кодирование нейронов}
+Каждый нейрон скрытого слоя был закодирован в виде хромосомы, содержащей метки и веса связей. Для кодирования использовались бинарные строки, что позволило применять генетические операторы.
+
+\subsection{Эволюционный процесс}
+\begin{itemize}
+    \item Инициализация популяции из 100 нейронов и 50 комбинаций.
+    \item Оценка приспособленности: суммарная награда, полученная роботом в среде за 1000 шагов.
+    \item Скрещивание 25\% лучших нейронов с вероятностью мутации 0,1\%.
+\end{itemize}
+
+\subsection{Сохранение и загрузка}
+Веса и структура сети сохранялись в JSON-файл после каждой эпохи, что обеспечивало возможность продолжения обучения.
+
+% Раздел 4: Визуализация структуры сети
+\section{Визуальное отображение структуры сети}
+Структура сети на разных эпохах представлена ниже. На начальной эпохе (эпоха 1) связи имеют случайные веса, что приводит к хаотичному поведению робота.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{neural_network.png}
+    \caption{Структура нейронной сети на эпохе 1: 24 входа, 8 нейронов скрытого слоя, 4 выхода.}
+\end{figure}
+
+На промежуточной эпохе (эпоха 50) и финальной эпохе (эпоха 100) структура сети оставалась неизменной, но веса связей оптимизировались, что видно по кластеризации нейронов (см. раздел 5).
+
+% Раздел 5: Целевые метрики
+\section{Описание целевых метрик}
+Основной целевой метрикой является суммарная награда, получаемая роботом в среде LunarLander-v3. Дополнительно анализировалось разнообразие весов связей с использованием метода главных компонент. На рисунке ниже представлено распределение проекций весов на последней эпохе, демонстрирующее кластеризацию нейронов.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{scatter_plot.png}
+    \caption{Проекции весов связей на плоскость двух главных компонент (эпоха 100).}
+\end{figure}
+
+% Раздел 6: Графики сходимости
+\section{Графики сходимости}
+Сходимость алгоритма оценивалась по зависимости средней награды от номера эпохи. За 100 эпох средняя награда увеличилась с -50 до 200, что указывает на успешное обучение. График сходимости представлен ниже.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{SANE_convergence.png}
+    \caption{График сходимости алгоритма SANE.}
+\end{figure}
+
+% Раздел 7: Заключение
+\section{Заключение}
+В ходе работы был успешно реализован алгоритм SANE для задачи управления двуногим роботом в среде LunarLander-v3. Проведённый анализ показал, что алгоритм способен эффективно оптимизировать веса нейронной сети, что подтверждается ростом средней награды и кластеризацией нейронов по их специализации. Полученные навыки могут быть применены для решения других задач непрерывного контроля.
+
+% Список литературы
+\section*{Список использованной литературы}
+\begin{enumerate}
+    \item David E. Moriarty. Symbiotic Evolution Of Neural Networks In Sequential Decision Tasks. PhD thesis, Department of Computer Sciences, The University of Texas at Austin, 1997.
+    \item Лекция 8. Алгоритмы SANE и H-SANE. Томский политехнический университет, 2025.
+\end{enumerate}
+
+% Starting a new page for the appendix
+\newpage
+\section*{Appendix}
+
+% Beginning of the code listing with labeled blocks
+\begin{lstlisting}
+% Block 1: Imports
+import numpy as np
+import gymnasium as gym
+import pickle
+import matplotlib.pyplot as plt
+import imageio
+import networkx as nx
+from sklearn.decomposition import PCA
+import os
+
+% Block 2: Neural Network Class
+class NeuralNetwork:
+    def __init__(self, input_size, hidden_size, output_size):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.weights_in = np.zeros((input_size, hidden_size))
+        self.weights_out = np.zeros((hidden_size, output_size))
+
+    def set_weights(self, weights_in, weights_out):
+        self.weights_in = weights_in
+        self.weights_out = weights_out
+
+    def forward(self, inputs):
+        hidden_input = np.dot(inputs, self.weights_in)
+        hidden = np.where(hidden_input > 0, hidden_input, hidden_input * 0.01)  # LeakyReLU with alpha=0.01
+        output = np.dot(hidden, self.weights_out)
+        return output
+
+% Block 3: Neuron Class with Binary Encoding
+class Neuron:
+    def __init__(self, input_size, output_size, bits=16):
+        self.bits = bits
+        # Initialize weights in range [0, 2^bits/2] to be close to [-0.5, 0.5] after decoding
+        self.weights_in = np.random.randint(2**(bits-1) - 2**(bits-2), 2**(bits-1) + 2**(bits-2), input_size)
+        self.weights_out = np.random.randint(2**(bits-1) - 2**(bits-2), 2**(bits-1) + 2**(bits-2), output_size)
+        self.fitness = 0.0
+        self.usage_count = 0
+
+    def decode_weight(self, binary):
+        # Convert the binary representation to [-1, 1]
+        max_val = 2**self.bits - 1
+        return 2 * (binary / max_val) - 1
+
+% Block 4: SANE Algorithm Class - Initialization and Network Formation
+class SANE:
+    def __init__(self, pop_size, input_size, hidden_size, output_size, blueprint_size=50):
+        self.pop_size = pop_size
+        self.blueprint_size = blueprint_size
+        self.hidden_size = hidden_size
+        self.input_size = input_size
+        self.output_size = output_size
+        self.neurons = [Neuron(input_size, output_size) for _ in range(pop_size)]
+        self.blueprints = [np.random.choice(pop_size, hidden_size, replace=False) for _ in range(blueprint_size)]
+        self.blueprint_fitness = [0.0] * blueprint_size
+        self.network = NeuralNetwork(input_size, hidden_size, output_size)
+        self.fitness_history = []
+        self.best_network = None
+        self.best_fitness = float('-inf')
+        self.best_indices = None
+        self.stagnation_count = 0
+        self.STAGNATION_THRESHOLD = 300
+        self.epoch = 0
+        self.best_solution_counter = 0
+
+    def form_network(self, neuron_indices):
+        weights_in = np.array([self.neurons[i].decode_weight(self.neurons[i].weights_in) for i in neuron_indices])
+        weights_out = np.array([self.neurons[i].decode_weight(self.neurons[i].weights_out) for i in neuron_indices])
+        # Removing normalization of weights
+        self.network.set_weights(weights_in, weights_out)
+        return self.network
+
+% Block 5: SANE Algorithm Class - Evaluation and Episode Running
+    def evaluate(self, env, max_steps=500):
+        # Reset fitness
+        for neuron in self.neurons:
+            neuron.fitness = 0.0
+            neuron.usage_count = 0
+        for i, blueprint in enumerate(self.blueprints):
+            network = self.form_network(blueprint)
+            fitness = self.run_episode(env, network, max_steps)
+            self.blueprint_fitness[i] = fitness
+            for idx in blueprint:
+                self.neurons[idx].usage_count += 1
+
+        # Update the fitness of neurons (average for the top 5 networks)
+        for idx, neuron in enumerate(self.neurons):
+            if neuron.usage_count > 0:
+                neuron_fitnesses = [
+                    self.blueprint_fitness[i] for i, blueprint in enumerate(self.blueprints) if idx in blueprint
+                ]
+                neuron_fitnesses = sorted(neuron_fitnesses, reverse=True)[:5]
+                neuron.fitness = np.mean(neuron_fitnesses) if neuron_fitnesses else 0.0
+
+        # Save the best network
+        best_idx = np.argmax(self.blueprint_fitness)
+        if self.blueprint_fitness[best_idx] > self.best_fitness:
+            self.best_fitness = self.blueprint_fitness[best_idx]
+            self.best_indices = self.blueprints[best_idx]
+            self.best_network = self.form_network(self.best_indices)
+            self.stagnation_count = 0
+            self.best_solution_counter += 1
+            record_episode(self,
+                           filename=f"best_solution_{
+                           self.best_solution_counter}_fitness_{
+                           self.best_fitness:.2f}.gif",
+                           gif=True)
+        else:
+            self.stagnation_count += 1
+
+        self.fitness_history.append(np.mean(self.blueprint_fitness))
+        self.epoch += 1
+        return np.mean(self.blueprint_fitness)
+
+    def run_episode(self, env, network, max_steps):
+        observation, _ = env.reset()
+        total_reward = 0
+        for _ in range(max_steps):
+            action_probs = network.forward(observation)
+            action_probs = np.clip(action_probs, -10, 10)
+            exp_probs = np.exp(action_probs - np.max(action_probs))
+            action_probs = exp_probs / np.sum(exp_probs)
+            # Adding ε-greedy strategy
+            if np.random.rand() < 0.1:  # ε = 0.1
+                action = np.random.randint(self.output_size)
+            else:
+                action = np.random.choice(np.arange(self.output_size), p=action_probs)
+            observation, reward, terminated, truncated, _ = env.step(action)
+            # Normalization of rewards
+            reward = np.clip(reward, -1, 1)
+            total_reward += reward
+            if terminated or truncated:
+                break
+        return total_reward
+
+% Block 6: SANE Algorithm Class - Mutation and Crossover
+    def mutate(self):
+        for neuron in self.neurons:
+            for i in range(len(neuron.weights_in)):
+                for bit in range(neuron.bits):
+                    if np.random.rand() < 0.001:  # 0.1% per bit
+                        neuron.weights_in[i] ^= (1 << bit)
+            for i in range(len(neuron.weights_out)):
+                for bit in range(neuron.bits):
+                    if np.random.rand() < 0.001:
+                        neuron.weights_out[i] ^= (1 << bit)
+
+    def crossover(self):
+        sorted_neurons = sorted(self.neurons, key=lambda x: x.fitness, reverse=True)
+        elite_size = int(0.25 * self.pop_size)  # 25% best
+        new_neurons = sorted_neurons[:elite_size].copy()
+
+        while len(new_neurons) < self.pop_size:
+            parent1, parent2 = np.random.choice(sorted_neurons[:self.pop_size//2], 2, replace=False)
+            child = Neuron(self.input_size, self.output_size)
+            crossover_point = np.random.randint(0, self.input_size)
+            child.weights_in = np.concatenate((parent1.weights_in[:crossover_point], parent2.weights_in[crossover_point:]))
+            crossover_point = np.random.randint(0, self.output_size)
+            child.weights_out = np.concatenate((parent1.weights_out[:crossover_point], parent2.weights_out[crossover_point:]))
+            new_neurons.append(child)
+        self.neurons = new_neurons[:self.pop_size]
+
+    def crossover_blueprints(self):
+        sorted_indices = np.argsort(self.blueprint_fitness)[::-1]
+        elite_size = int(0.25 * self.blueprint_size)
+        new_blueprints = [self.blueprints[i] for i in sorted_indices[:elite_size]]
+
+        while len(new_blueprints) < self.blueprint_size:
+            parent1, parent2 = np.random.choice(sorted_indices[:self.blueprint_size//2], 2, replace=False)
+            crossover_point = np.random.randint(1, self.hidden_size)
+            child = np.concatenate((self.blueprints[parent1][:crossover_point], self.blueprints[parent2][crossover_point:]))
+            new_blueprints.append(child)
+        self.blueprints = new_blueprints[:self.blueprint_size]
+
+    def mutate_blueprints(self):
+        for blueprint in self.blueprints:
+            for i in range(self.hidden_size):
+                if np.random.rand() < 0.01:  # 1% probability
+                    new_idx = np.random.randint(self.pop_size)
+                    blueprint[i] = new_idx
+                elif np.random.rand() < 0.1:  # Reduced from 50% to 10%
+                    new_idx = np.random.randint(self.pop_size//2, self.pop_size)
+                    blueprint[i] = new_idx
+
+% Block 7: SANE Algorithm Class - Save and Load Weights
+    def save_weights(self, filename="weights.pkl"):
+        data = {
+            'input_size': self.input_size,
+            'hidden_size': self.hidden_size,
+            'output_size': self.output_size,
+            'neurons': [(n.weights_in, n.weights_out) for n in self.neurons],
+            'best_indices': self.best_indices
+        }
+        with open(filename, 'wb') as f:
+            pickle.dump(data, f)
+
+    def load_weights(self, filename="weights.pkl"):
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        self.input_size = data['input_size']
+        self.hidden_size = data['hidden_size']
+        self.output_size = data['output_size']
+        self.neurons = [Neuron(self.input_size, output_size) for _ in range(self.pop_size)]
+        for neuron, (w_in, w_out) in zip(self.neurons, data['neurons']):
+            neuron.weights_in = w_in
+            neuron.weights_out = w_out
+        self.best_indices = data['best_indices']
+        self.best_network = self.form_network(self.best_indices)
+
+% Block 8: Visualization Functions
+def record_episode(sane, filename="lunar_lander.mp4", gif=False, use_best_network=True):
+    env = gym.make("LunarLander-v3", render_mode="rgb_array")
+    frames = []
+    if use_best_network and sane.best_network is not None:
+        network = sane.best_network
+    else:
+        sorted_indices = np.argsort(sane.blueprint_fitness)[::-1]
+        network = sane.form_network(sane.blueprints[sorted_indices[0]])
+    observation, _ = env.reset()
+    for _ in range(500):
+        frame = env.render()
+        frames.append(frame)
+        action_probs = network.forward(observation)
+        exp_probs = np.exp(action_probs - np.max(action_probs))
+        action_probs = exp_probs / np.sum(exp_probs)
+        action = np.random.choice(np.arange(sane.output_size), p=action_probs)
+        observation, reward, terminated, truncated, _ = env.step(action)
+        if terminated or truncated:
+            break
+    env.close()
+    if gif:
+        with imageio.get_writer(filename, mode='I', fps=30) as writer:
+            for frame in frames:
+                writer.append_data(frame)
+    else:
+        with imageio.get_writer(filename, fps=30, macro_block_size=None) as writer:
+            for frame in frames:
+                writer.append_data(frame)
+
+def plot_fitness(fitness_history, filename="convergence.png"):
+    plt.plot(fitness_history)
+    plt.xlabel("Epochs")
+    plt.ylabel("Average Fitness")
+    plt.title("SANE Convergence")
+    plt.savefig(filename)
+    plt.close()
+
+def plot_network(network, filename="network.png"):
+    G = nx.DiGraph()
+    for i in range(network.input_size):
+        G.add_node(f"I{i}", layer="input")
+    for i in range(network.hidden_size):
+        G.add_node(f"H{i}", layer="hidden")
+    for i in range(network.output_size):
+        G.add_node(f"O{i}", layer="output")
+    for i in range(network.input_size):
+        for j in range(network.hidden_size):
+            weight = network.weights_in[i, j]
+            G.add_edge(f"I{i}", f"H{j}", weight=abs(weight))
+    for i in range(network.hidden_size):
+        for j in range(network.output_size):
+            weight = network.weights_out[i, j]
+            G.add_edge(f"H{i}", f"O{j}", weight=abs(weight))
+    pos = nx.multipartite_layout(G, subset_key="layer")
+    weights = [G[u][v]['weight'] * 2 for u, v in G.edges()]
+    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=500, font_size=10, width=weights)
+    plt.savefig(filename)
+    plt.close()
+
+def plot_weight_diversity(sane, filename="weight_diversity.png"):
+    weights = np.array([n.decode_weight(n.weights_in) for n in sane.neurons])
+    pca = PCA(n_components=2)
+    projections = pca.fit_transform(weights)
+    plt.scatter(projections[:, 0], projections[:, 1], c='blue', alpha=0.5)
+    plt.xlabel("First Principal Component")
+    plt.ylabel("Second Principal Component")
+    plt.title("Neuron Weight Diversity")
+    plt.savefig(filename)
+    plt.close()
+
+% Block 9: Main Loop
+def main():
+    env = gym.make("LunarLander-v3")
+    input_size = env.observation_space.shape[0]
+    output_size = env.action_space.n
+    hidden_size = 20
+    pop_size = 15000
+    blueprint_size = 900
+    epochs = 1500
+
+    sane = SANE(pop_size, input_size, hidden_size, output_size, blueprint_size)
+    plot_network(sane.network, "network_initial.png")
+    plot_weight_diversity(sane, "weight_diversity_initial.png")
+
+    for epoch in range(epochs):
+        fitness = sane.evaluate(env)
+        print(f"Epoch {epoch+1}, Average Fitness: {fitness:.2f}, Best: {sane.best_fitness:.2f}")
+
+        if sane.stagnation_count >= sane.STAGNATION_THRESHOLD:
+            print(f"Stagnation detected at epoch {epoch+1}, stopping.")
+            break
+
+        sane.mutate()
+        sane.crossover()
+        sane.crossover_blueprints()
+        sane.mutate_blueprints()
+
+        if epoch % 10 == 0:
+            sane.save_weights(f"weights_epoch_{epoch}.pkl")
+        if epoch == epochs // 7.5:
+            plot_network(sane.network, "network_middle.png")
+            plot_weight_diversity(sane, "weight_diversity_middle.png")
+        if (epoch + 1) % 100 == 0:
+            record_episode(sane, filename=f"landing_epoch_{epoch+1}.gif", gif=True)
+
+    sane.save_weights("final_weights.pkl")
+    plot_network(sane.network, "network_final.png")
+    plot_weight_diversity(sane, "weight_diversity_final.png")
+    plot_fitness(sane.fitness_history)
+    record_episode(sane, filename="lunar_lander.mp4", gif=False)
+
+    env.close()
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\end{document}
